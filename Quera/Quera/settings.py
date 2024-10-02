@@ -32,6 +32,8 @@ INSTALLED_APPS = [
     "answer_app",
     "class_app",
     "task_app",
+    'rest_framework',
+    'rest_framework_simplejwt'
 ]
 
 MIDDLEWARE = [

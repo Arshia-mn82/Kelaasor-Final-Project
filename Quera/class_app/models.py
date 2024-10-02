@@ -1,6 +1,5 @@
 from django.db import models
 from account_app.models import *
-from task_app.models import Task
 
 
 class PublicClass(models.Model):
@@ -9,10 +8,10 @@ class PublicClass(models.Model):
     capacity = models.PositiveIntegerField(null=True, blank=True)
     start_register_date = models.DateField(null=True, blank=True)
     end_register_date = models.DateField(null=True, blank=True)
-    owners = models.ManyToManyField(Account)
-    mentors = models.ManyToManyField(Account)
-    students = models.ManyToManyField(Account)
-    tasks = models.ManyToManyField(Task, null=True, blank=True)
+    owners = models.ManyToManyField(Account, related_name="Public_Owners")
+    mentors = models.ManyToManyField(Account, related_name="Public_Mentors")
+    students = models.ManyToManyField(Account, related_name="Public_Students")
+    tasks = models.ManyToManyField("task_app.Task", blank=True)
     forum = models.ForeignKey(Forum, on_delete=models.CASCADE, null=True, blank=True)
 
 
@@ -30,11 +29,8 @@ class PrivateClass(models.Model):
     signup_type = models.CharField(max_length=1, choices=security_types)
     start_register_date = models.DateField(null=True, blank=True)
     end_register_date = models.DateField(null=True, blank=True)
-    owners = models.ManyToManyField(Account)
-    students = models.ManyToManyField(Account)
-    tasks = models.ManyToManyField(Task, null=True, blank=True)
+    owners = models.ManyToManyField(Account, related_name="Private_Owners")
+    mentors = models.ManyToManyField(Account, related_name="Private_Mentors")
+    students = models.ManyToManyField(Account, related_name="Private_Students")
+    tasks = models.ManyToManyField("task_app.Task", blank=True)
     forum = models.ForeignKey(Forum, on_delete=models.CASCADE, null=True, blank=True)
-    
-    
-
-    

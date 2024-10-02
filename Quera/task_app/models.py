@@ -1,7 +1,7 @@
 from django.db import models
 from account_app.models import *
 from class_app.models import *
-from answer_app.models import *
+from answer_app.models import FileAnswer,TextAnswer,JudgeAnswer
 
 
 class ScoreBarSingle(models.Model):
@@ -22,9 +22,9 @@ class Task(models.Model):
     second_deadline = models.DateField(null=True, blank=True)
     submit_limit = models.IntegerField(null=True, blank=True)
     score_bar = models.IntegerField(null=True, blank=True)
-    file_answer = models.ForeignKey(FileAnswer, on_delete=models.CASCADE)
-    judge_answer = models.ForeignKey(JudgeAnswer, on_delete=models.CASCADE)
-    text_answer = models.ForeignKey(TextAnswer, on_delete=models.CASCADE)
+    file_answer = models.ForeignKey('answer_app.FileAnswer', on_delete=models.CASCADE)
+    judge_answer = models.ForeignKey('answer_app.JudgeAnswer', on_delete=models.CASCADE)
+    text_answer = models.ForeignKey('answer_app.TextAnswer', on_delete=models.CASCADE)
     question_bank = models.BooleanField()
 
     def __str__(self) -> str:

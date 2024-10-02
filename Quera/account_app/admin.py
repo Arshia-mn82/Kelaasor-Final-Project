@@ -1,3 +1,10 @@
-from django.contrib import admin
+from django.contrib.admin import register,ModelAdmin
+from .models import *
 
-# Register your models here.
+@register(Account)
+class AccountAdmin(ModelAdmin):
+    pass
+
+@register(Forum)
+class ForumAdmin(ModelAdmin):
+    pass
