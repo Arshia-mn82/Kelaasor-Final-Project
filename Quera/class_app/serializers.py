@@ -1,25 +1,86 @@
 from rest_framework import serializers
 from .models import PublicClass, PrivateClass
-import uuid
+from account_app.models import *
 
 
 class PublicClassSerializer(serializers.ModelSerializer):
     class Meta:
         model = PublicClass
-        fields = '__all__'
-
-    def create(self, validated_data):
-        unique_id = str(uuid.uuid4())
-        validated_data['unique_id'] = unique_id
-        return super().create(validated_data)
+        fields = ["title", "description"]
+        extra_kwargs = {
+            "title": {"required": True},
+            "description": {"required": True},
+        }
 
 
 class PrivateClassSerializer(serializers.ModelSerializer):
     class Meta:
         model = PrivateClass
-        fields = '__all__'
+        fields = ["title", "description", "signup_type", "password"]
+        extra_kwargs = {
+            "title": {"required": True},
+            "description": {"required": True},
+            "signup_type": {"required": True},
+            "password": {
+                "required": False
+            },  # Password is optional, only required for password-protected classes
+        }
 
-    def create(self, validated_data):
-        unique_id = str(uuid.uuid4())
-        validated_data['unique_id'] = unique_id
-        return super().create(validated_data)
+    def validate(self, data):
+        if data["signup_type"] == PrivateClass.PASSWORD and not data.get("password"):
+            raise serializers.ValidationError(
+                {"password": "Password is required for password-protected classes."}
+            )
+        return data
+
+
+class AccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Account
+        fields = ["id", "first_name", "last_name"]
+
+
+class PublicClassDetailSerializer(serializers.ModelSerializer):
+    teachers = AccountSerializer(many=True)
+    students = AccountSerializer(many=True)
+    mentors = AccountSerializer(many=True)
+
+    class Meta:
+        model = PublicClass
+        fields = [
+            "id",
+            "title",
+            "description",
+            "capacity",
+            "start_register_date",
+            "end_register_date",
+            "teachers",
+            "students",
+            "mentors",
+            "tasks",
+            "forum",
+        ]
+
+
+class PrivateClassDetailSerializer(serializers.ModelSerializer):
+    teachers = AccountSerializer(many=True)
+    students = AccountSerializer(many=True)
+    mentors = AccountSerializer(many=True)
+
+    class Meta:
+        model = PrivateClass
+        fields = [
+            "id",
+            "title",
+            "description",
+            "capacity",
+            "signup_type",
+            "password",
+            "start_register_date",
+            "end_register_date",
+            "teachers",
+            "students",
+            "mentors",
+            "tasks",
+            "forum",
+        ]

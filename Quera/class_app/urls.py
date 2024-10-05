@@ -1,17 +1,13 @@
 from django.urls import path
-from .views import PublicClassView, PrivateClassView
+from .views import *
 
 urlpatterns = [
-    path("public-class/", PublicClassView.as_view(), name="public-class-create"),
-    path(
-        "public-class/<int:pk>/",
-        PublicClassView.as_view(),
-        name="public-class-update-delete",
-    ),
-    path("private-class/", PrivateClassView.as_view(), name="private-class-create"),
-    path(
-        "private-class/<int:pk>/",
-        PrivateClassView.as_view(),
-        name="private-class-update-delete",
-    ),
+    path("create-public-class/", CreatePublicClass.as_view()),
+    path("create-private-class/", CreatePrivateClass.as_view()),
+    path("all-public-classes/", PublicClassView.as_view()),
+    path("all-private-classes/", PrivateClassView.as_view()),
+    path("all-public-classes/<int:pk>/", PublicClassDetailView.as_view()),
+    path("all-private-classes/<int:pk>/", PrivateClassDetailView.as_view()),
+    path('public-class-update/<int:pk>/', UpdatePublicClass.as_view()),
+    path('private-class-update/<int:pk>/', UpdatePrivateClass.as_view()),
 ]
