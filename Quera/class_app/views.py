@@ -13,6 +13,18 @@ def generate_unique_id():
     return str(uuid.uuid4())[:8]
 
 
+def get_user_account(request):
+    try:
+        account = Account.objects.get(user=request.user)
+        return account
+    except Account.DoesNotExist:
+        return None
+
+
+def is_teacher_of_class(account, class_instance):
+    return account in class_instance.teachers.all()
+
+
 class CreatePublicClass(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -26,15 +38,13 @@ class CreatePublicClass(APIView):
                 unique_id=generate_unique_id(),
             )
 
-            try:
-                account = Account.objects.get(user=request.user)
-                new_public_class.teachers.add(account)
-            except Account.DoesNotExist:
+            account = get_user_account(request)
+            if not account:
                 return Response(
                     {"error": "Account for the user does not exist."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-
+            new_public_class.teachers.add(account)
             new_public_class.save()
 
             return Response(
@@ -64,15 +74,14 @@ class CreatePrivateClass(APIView):
             if new_private_class.signup_type == PrivateClass.PASSWORD:
                 new_private_class.password = serializer.validated_data["password"]
 
-            try:
-                account = Account.objects.get(user=request.user)
-                new_private_class.teachers.add(account)
-            except Account.DoesNotExist:
+            account = get_user_account(request)
+            if not account:
                 return Response(
                     {"error": "Account for the user does not exist."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+            new_private_class.teachers.add(account)
             new_private_class.save()
 
             return Response(
@@ -126,15 +135,14 @@ class UpdatePublicClass(APIView):
 
     def put(self, request, pk):
         public_class = get_object_or_404(PublicClass, pk=pk)
-        try:
-            account = Account.objects.get(user=request.user)
-        except Account.DoesNotExist:
+        account = get_user_account(request)
+        if not account:
             return Response(
                 {"error": "Account for the user does not exist."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if account not in public_class.teachers.all():
+        if not is_teacher_of_class(account, public_class):
             return Response(
                 {"error": "Only teachers of this class can update its details."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -161,15 +169,14 @@ class UpdatePrivateClass(APIView):
 
     def put(self, request, pk):
         private_class = get_object_or_404(PrivateClass, pk=pk)
-        try:
-            account = Account.objects.get(user=request.user)
-        except Account.DoesNotExist:
+        account = get_user_account(request)
+        if not account:
             return Response(
                 {"error": "Account for the user does not exist."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if account not in private_class.teachers.all():
+        if not is_teacher_of_class(account, private_class):
             return Response(
                 {"error": "Only teachers of this class can update its details."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -192,3 +199,263 @@ class UpdatePrivateClass(APIView):
         private_class.save()
         serializer = PrivateClassDetailSerializer(private_class)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AddTeacherToPublicClass(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        public_class = get_object_or_404(PublicClass, pk=pk)
+        account = get_user_account(request)
+        if not account:
+            return Response(
+                {"error": "Account for the user does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not is_teacher_of_class(account, public_class):
+            return Response(
+                {"error": "Only teachers of this class can add other teachers."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        teacher_id = request.data.get("teacher_id")
+        if not teacher_id:
+            return Response(
+                {"error": "Teacher ID is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            new_teacher = Account.objects.get(pk=teacher_id)
+            public_class.teachers.add(new_teacher)
+        except Account.DoesNotExist:
+            return Response(
+                {"error": "The teacher account does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        public_class.save()
+        return Response(
+            {"success": "Teacher added successfully."}, status=status.HTTP_200_OK
+        )
+
+
+class AddTeacherToPrivateClass(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        private_class = get_object_or_404(PrivateClass, pk=pk)
+        account = get_user_account(request)
+        if not account:
+            return Response(
+                {"error": "Account for the user does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not is_teacher_of_class(account, private_class):
+            return Response(
+                {"error": "Only teachers of this class can add other teachers."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        teacher_id = request.data.get("teacher_id")
+        if not teacher_id:
+            return Response(
+                {"error": "Teacher ID is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            new_teacher = Account.objects.get(pk=teacher_id)
+            private_class.teachers.add(new_teacher)
+        except Account.DoesNotExist:
+            return Response(
+                {"error": "The teacher account does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        private_class.save()
+        return Response(
+            {"success": "Teacher added successfully."}, status=status.HTTP_200_OK
+        )
+
+
+class AddMentorToPublicClass(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        public_class = get_object_or_404(PublicClass, pk=pk)
+        account = get_user_account(request)
+        if not account:
+            return Response(
+                {"error": "Account for the user does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not is_teacher_of_class(account, public_class):
+            return Response(
+                {"error": "Only teachers of this class can add mentors."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        mentor_id = request.data.get("mentor_id")
+        if not mentor_id:
+            return Response(
+                {"error": "Mentor ID is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            new_mentor = Account.objects.get(pk=mentor_id)
+            public_class.mentors.add(new_mentor)
+        except Account.DoesNotExist:
+            return Response(
+                {"error": "The mentor account does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        public_class.save()
+        return Response(
+            {"success": "Mentor added successfully."}, status=status.HTTP_200_OK
+        )
+
+
+class AddMentorToPrivateClass(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        private_class = get_object_or_404(PrivateClass, pk=pk)
+        account = get_user_account(request)
+        if not account:
+            return Response(
+                {"error": "Account for the user does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not is_teacher_of_class(account, private_class):
+            return Response(
+                {"error": "Only teachers of this class can add mentors."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        mentor_id = request.data.get("mentor_id")
+        if not mentor_id:
+            return Response(
+                {"error": "Mentor ID is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            new_mentor = Account.objects.get(pk=mentor_id)
+            private_class.mentors.add(new_mentor)
+        except Account.DoesNotExist:
+            return Response(
+                {"error": "The mentor account does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        private_class.save()
+        return Response(
+            {"success": "Mentor added successfully."}, status=status.HTTP_200_OK
+        )
+
+
+class GetStudentsInPublicClass(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        public_class = get_object_or_404(PublicClass, pk=pk)
+        account = get_user_account(request)
+        if not account:
+            return Response(
+                {"error": "Account for the user does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not is_teacher_of_class(account, public_class):
+            return Response(
+                {"error": "Only teachers of this class can view students."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        students = (
+            public_class.students.all()
+        )  # Assuming you have a 'students' relation in PublicClass
+        serializer = AccountSerializer(students, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class GetStudentsInPrivateClass(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        private_class = get_object_or_404(PrivateClass, pk=pk)
+        account = get_user_account(request)
+        if not account:
+            return Response(
+                {"error": "Account for the user does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not is_teacher_of_class(account, private_class):
+            return Response(
+                {"error": "Only teachers of this class can view students."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        students = private_class.students.all()
+        serializer = AccountSerializer(students, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class DeleteStudentFromPublicClass(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, class_id, student_id):
+        public_class = get_object_or_404(PublicClass, pk=class_id)
+        account = get_user_account(request)
+        if not account:
+            return Response(
+                {"error": "Account for the user does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not is_teacher_of_class(account, public_class):
+            return Response(
+                {"error": "Only teachers of this class can delete students."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        student = get_object_or_404(Account, id=student_id)
+        public_class.students.remove(student)
+        return Response(
+            {"success": "Student removed successfully."},
+            status=status.HTTP_204_NO_CONTENT,
+        )
+
+
+class DeleteStudentFromPrivateClass(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk, student_id):
+        private_class = get_object_or_404(PrivateClass, pk=pk)
+        account = get_user_account(request)
+        if not account:
+            return Response(
+                {"error": "Account for the user does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not is_teacher_of_class(account, private_class):
+            return Response(
+                {"error": "Only teachers of this class can delete students."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        student = get_object_or_404(Account, id=student_id)
+        private_class.students.remove(student)
+        return Response(
+            {"success": "Student removed successfully."},
+            status=status.HTTP_204_NO_CONTENT,
+        )
