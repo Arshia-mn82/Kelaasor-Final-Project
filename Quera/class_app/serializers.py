@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import PublicClass, PrivateClass
 from account_app.models import *
+from task_app.models import Task
 
 
 class PublicClassSerializer(serializers.ModelSerializer):
@@ -34,6 +35,12 @@ class PrivateClassSerializer(serializers.ModelSerializer):
         return data
 
 
+class TaskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Task
+        fields = ["id", "name" , "first_deadline"]
+
+
 class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
@@ -44,6 +51,7 @@ class PublicClassDetailSerializer(serializers.ModelSerializer):
     teachers = AccountSerializer(many=True)
     students = AccountSerializer(many=True)
     mentors = AccountSerializer(many=True)
+    tasks = TaskSerializer(many=True)
 
     class Meta:
         model = PublicClass
@@ -66,6 +74,7 @@ class PrivateClassDetailSerializer(serializers.ModelSerializer):
     teachers = AccountSerializer(many=True)
     students = AccountSerializer(many=True)
     mentors = AccountSerializer(many=True)
+    tasks = TaskSerializer(many=True)
 
     class Meta:
         model = PrivateClass

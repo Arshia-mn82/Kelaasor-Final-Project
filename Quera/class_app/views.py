@@ -1,4 +1,4 @@
-from rest_framework import status
+from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -379,9 +379,7 @@ class GetStudentsInPublicClass(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        students = (
-            public_class.students.all()
-        )  # Assuming you have a 'students' relation in PublicClass
+        students = public_class.students.all()
         serializer = AccountSerializer(students, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -458,4 +456,57 @@ class DeleteStudentFromPrivateClass(APIView):
         return Response(
             {"success": "Student removed successfully."},
             status=status.HTTP_204_NO_CONTENT,
+        )
+
+
+class JoinPublicClassView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, id):
+        account = get_object_or_404(Account, user=request.user)
+        public_class = get_object_or_404(PublicClass, id=id)
+        public_class.students.add(account)
+        return Response(
+            {"message": "You have successfully joined the public class."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class JoinPrivateClassView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, id):
+        account = get_object_or_404(Account, user=request.user)
+        private_class = get_object_or_404(PrivateClass, id=id)
+
+        if private_class.signup_type == PrivateClass.PASSWORD:
+            password = request.data.get("password")
+            if password and password == private_class.password:
+                private_class.students.add(account)
+                return Response(
+                    {"message": "You have successfully joined the private class."},
+                    status=status.HTTP_200_OK,
+                )
+            else:
+                return Response(
+                    {"error": "Invalid password."}, status=status.HTTP_403_FORBIDDEN
+                )
+
+        elif private_class.signup_type == PrivateClass.INVITATION_LINK:
+            invitation_link = request.data.get("invitation_link")
+            if invitation_link:
+                # Logic to validate the invitation link
+                private_class.students.add(account)
+                return Response(
+                    {"message": "You have successfully joined the private class."},
+                    status=status.HTTP_200_OK,
+                )
+            else:
+                return Response(
+                    {"error": "No invitation link provided."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        return Response(
+            {"error": "Invalid signup type."}, status=status.HTTP_400_BAD_REQUEST
         )

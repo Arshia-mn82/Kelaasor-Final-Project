@@ -24,4 +24,6 @@ urlpatterns = [
         "delete-student-from-private-class/<int:class_id>/<int:student_id>/",
         DeleteStudentFromPrivateClass.as_view(),
     ),
+    path('join-public-class/<int:id>/', JoinPublicClassView.as_view(), name='join_public_class'),
+    path('join-private-class/<int:id>/', JoinPrivateClassView.as_view(), name='join_private_class'),
 ]
